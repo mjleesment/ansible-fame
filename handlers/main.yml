@@ -1,0 +1,18 @@
+---
+- name: restart fame_web
+  command: systemctl restart fame_web
+
+- name: restart fame_worker
+  command: systemctl restart fame_worker
+
+- name: restart nginx
+  command: systemctl restart nginx
+
+- name: start fame_web
+  command: systemctl start fame_web
+
+- name: start fame_worker
+  command: systemctl start fame_worker
+
+- name: restart mongodb
+  command: systemctl restart mongodb

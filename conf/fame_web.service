@@ -1,0 +1,22 @@
+[Unit]
+Description=FAME web server
+After = network.target
+
+[Service]
+PermissionsStartOnly = true
+PIDFile = /run/fame/fame.pid
+User = fame
+Group = fame
+WorkingDirectory = /opt/fame
+Environment = "PYTHONUNBUFFERED=TRUE"
+ExecStartPre = /bin/mkdir /run/fame
+ExecStartPre = /bin/chown -R fame:fame /run/fame
+ExecStart = /opt/fame/env/bin/gunicorn webserver:app -b 127.0.0.1:4200 --pid /run/fame/fame.pid --chdir /opt/fame --workers=2 --timeout 300 --access-logformat '%({x-forwarded-for}i)s %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"' --access-logfile -
+ExecReload = /bin/kill -s HUP $MAINPID
+ExecStop = /bin/kill -s TERM $MAINPID
+ExecStopPost = /bin/rm -rf /run/fame
+PrivateTmp = true
+StartLimitBurst = 0
+
+[Install]
+WantedBy=multi-user.target

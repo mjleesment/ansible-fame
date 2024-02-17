@@ -1,0 +1,127 @@
+---
+- include_vars: vars/fame.yaml
+- name: Install prerequisite package
+  apt:
+    name: "{{ prereq_packages }}"
+    update_cache: true
+
+- name: Check if FAME repo cloned
+  stat:
+    path: /opt/fame
+  register: fame_repo_exists
+
+- name: Clone FAME repo
+  ansible.builtin.git:
+    repo: https://github.com/certsocietegenerale/fame
+    dest: /opt/fame
+  when: fame_repo_exists.stat.exists==false
+
+- name: Create fame user
+  ansible.builtin.user:
+    name: fame
+    shell: /bin/bash
+    comment: "User for running fame services"
+
+- name: Give fame user ownership for fame environment
+  ansible.builtin.file:
+    path: /opt/fame
+    owner: fame
+    group: fame
+    state: directory
+    recurse: true
+
+- name: Update FAME repo
+  ansible.builtin.git:
+    repo: https://github.com/certsocietegenerale/fame
+    dest: /opt/fame
+    clone: no
+    update: yes
+  become: yes
+  become_user: fame
+  when: fame_repo_exists.stat.exists
+
+- name: Run install script not-interactive with mongo environment variables
+  ansible.builtin.shell:
+    cmd: /opt/fame/utils/run.sh /opt/fame/utils/install.py --not-interactive
+  environment:
+    MONGODB_USERNAME: "fame"
+    MONGODB_PASSWORD: "{{ mongo_fame_pass }}"
+    DEFAULT_EMAIL: "{{ fame_default_email }}"
+    DEFAULT_PASSWORD: "{{ fame_default_password }}"
+    FAME_URL: "{{ fame_url }}"
+
+- name: Install gunicorn
+  ansible.builtin.pip:
+    name: gunicorn
+    virtualenv: /opt/fame/env
+
+- name: Give fame user ownership for fame environment
+  ansible.builtin.file:
+    path: /opt/fame
+    owner: fame
+    group: fame
+    state: directory
+    recurse: true
+
+- name: Copy systemd configuration file for the webserver
+  copy:
+    src: conf/fame_web.service
+    dest: /etc/systemd/system/fame_web.service
+    mode: 0755
+
+- name: Copy systemd configuration file for the worker
+  copy:
+    src: conf/fame_worker.service
+    dest: /etc/systemd/system/fame_worker.service
+    mode: 0755
+
+- name: Enable the web service
+  ansible.builtin.service:
+    name: fame_web
+    state: started
+    enabled: yes
+  notify: start fame_web
+
+- name: Enable the worker service
+  ansible.builtin.service:
+    name: fame_worker
+    state: started
+    enabled: yes
+  notify: start fame_worker
+
+- name: Install nginx
+  apt:
+    name: "nginx"
+    update_cache: true
+
+- name: Remove the default configuration file
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Copy nginx configuration
+  copy:
+    src: conf/nginx_fame
+    dest: /etc/nginx/sites-available/fame
+    mode: 0755
+
+- name: Enable nginx configuration & restart nginx
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/fame
+    dest: /etc/nginx/sites-enabled/fame
+    state: link
+  notify: restart nginx
+
+- name: Make sure static files can be read by the nginx user
+  ansible.builtin.file:
+    path: /opt/fame/web/static
+    owner: www-data
+    group: www-data
+    state: directory
+    recurse: true
+
+- name: Add fame user to group www-data
+  ansible.builtin.user:
+    name: fame
+    groups: www-data
+    append: yes

@@ -1,0 +1,10 @@
+[Unit]
+Description=FAME workers
+
+[Service]
+Type=simple
+User=fame
+ExecStart=/bin/bash -c 'cd /opt/fame && utils/run.sh worker.py'
+
+[Install]
+WantedBy=multi-user.target

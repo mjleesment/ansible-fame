@@ -1,0 +1,13 @@
+---
+mongo_prereq_packages:
+  - gnupg
+  - curl
+  - python3-pip
+
+mongo_packages:
+  - mongodb-org
+  - mongodb-org-database
+  - mongodb-org-server
+  - mongodb-mongosh
+  - mongodb-org-mongos
+  - mongodb-org-tools

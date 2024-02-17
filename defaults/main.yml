@@ -1,0 +1,7 @@
+---
+mongodb_version: "7.0"
+mongo_fame_pass: ""
+mongo_admin_pass: ""
+fame_default_email: ""
+fame_default_password: ""
+fame_url: "" # scheme also necessary
